@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -24,6 +24,7 @@
 #include <bitcoin/server/define.hpp>
 #include <bitcoin/server/interface/blockchain.hpp>
 #include <bitcoin/server/interface/subscribe.hpp>
+#include <bitcoin/server/interface/server.hpp>
 #include <bitcoin/server/interface/transaction_pool.hpp>
 #include <bitcoin/server/interface/unsubscribe.hpp>
 #include <bitcoin/server/messages/message.hpp>
@@ -34,6 +35,7 @@ namespace server {
 
 using namespace std::placeholders;
 using namespace bc::protocol;
+using namespace bc::system;
 using role = zmq::socket::role;
 
 query_worker::query_worker(zmq::authenticator& authenticator,
@@ -223,15 +225,19 @@ void query_worker::attach(const std::string& command,
 // protocol.broadcast_transaction is obsoleted in v3 (renamed).
 // protocol.total_connections is obsoleted in v3 (administrative).
 //-----------------------------------------------------------------------------
-// subscribe.address is new in v3, also call for renew.
+// subscribe.key is new in v4, also call for renew.
+// subscribe.address is new in v3, also call for renew (deprecated v4).
 // subscribe.stealth is new in v3, also call for renew.
 //-----------------------------------------------------------------------------
-// unsubscribe.address is new in v3 (there was never address.unsubscribe).
+// unsubscribe.key is new in v4 (matching subscribe.key).
+// unsubscribe.address is new in v3 (there was never address.unsubscribe, deprecated v4).
 // unsubscribe.stealth is new in v3 (there was never stealth.unsubscribe).
 //-----------------------------------------------------------------------------
 // subscribe.block (pub-sub) is new in v3.4.
 // subscribe.transaction (pub-sub) is new in v3.4.
 // subscribe.heartbeat (pub-sub) is new in v3.4.
+//-----------------------------------------------------------------------------
+// server.version is new in v4.
 //=============================================================================
 // Interface class.method names must match protocol names.
 void query_worker::attach_interface()
@@ -240,10 +246,12 @@ void query_worker::attach_interface()
     ////ATTACH(address, renew, node_);                    // obsoleted (3.0)
     ////ATTACH(address, subscribe, node_);                // obsoleted (3.0)
     ////ATTACH(address, fetch_history, node_);            // obsoleted (3.0)
+    ////ATTACH(subscribe, address, node_);     // new (3.1), obsoleted (4.0)
+    ////ATTACH(unsubscribe, address, node_);   // new (3.1), obsoleted (4.0)
 
-    ATTACH(subscribe, address, node_);                          // new (3.1)
+    ATTACH(subscribe, key, node_);                              // new (4.0)
     ATTACH(subscribe, stealth, node_);                          // new (3.1)
-    ATTACH(unsubscribe, address, node_);                        // new (3.1)
+    ATTACH(unsubscribe, key, node_);                            // new (4.0)
     ATTACH(unsubscribe, stealth, node_);                        // new (3.1)
 
     ////ATTACH(blockchain, fetch_stealth, node_);               // obsoleted
@@ -269,6 +277,8 @@ void query_worker::attach_interface()
     ATTACH(transaction_pool, fetch_transaction2, node_);        // new (3.4)
     ATTACH(transaction_pool, broadcast, node_);                 // new (3.0)
     ATTACH(transaction_pool, validate2, node_);                 // new (3.0)
+
+    ATTACH(server, version, node_);                             // new (4.0)
 
     ////ATTACH(protocol, broadcast_transaction, node_);         // obsoleted
     ////ATTACH(protocol, total_connections, node_);             // obsoleted

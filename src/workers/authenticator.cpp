@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -27,16 +27,17 @@ namespace libbitcoin {
 namespace server {
 
 using namespace bc::protocol;
+using namespace bc::system;
 
 authenticator::authenticator(server_node& node)
   : zmq::authenticator(priority(node.server_settings().priority))
 {
     const auto& settings = node.server_settings();
 
-    set_private_key(settings.server_private_key);
+    set_private_key(settings.zeromq_server_private_key);
 
     // Secure clients are also affected by address restrictions.
-    for (const auto& public_key: settings.client_public_keys)
+    for (const auto& public_key: settings.zeromq_client_public_keys)
     {
         LOG_DEBUG(LOG_SERVER)
             << "Allow client public key [" << public_key << "]";

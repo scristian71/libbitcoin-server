@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -29,9 +29,10 @@
 namespace libbitcoin {
 namespace server {
 
+using namespace bc::system;
 using namespace std::placeholders;
 
-static constexpr auto canonical = bc::message::version::level::canonical;
+static constexpr auto canonical = system::message::version::level::canonical;
 
 void transaction_pool::fetch_transaction(server_node& node,
     const message& request, send_handler handler)
@@ -98,7 +99,7 @@ void transaction_pool::transaction_fetched(const code& ec,
 
 // Save to tx pool and announce to all connected peers.
 // FUTURE: conditionally subscribe to penetration notifications.
-void transaction_pool::broadcast(server_node& node, const message& request,
+void transaction_pool::broadcast(server_node& /* node */, const message& request,
     send_handler handler)
 {
     // TODO: re-implement.
@@ -128,7 +129,7 @@ void transaction_pool::handle_broadcast(const code& ec, const message& request,
     handler(message(request, ec));
 }
 
-void transaction_pool::validate2(server_node& node, const message& request,
+void transaction_pool::validate2(server_node& /* node */, const message& request,
     send_handler handler)
 {
     // TODO: re-implement.

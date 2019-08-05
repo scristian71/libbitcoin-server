@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -29,13 +29,14 @@ BC_USE_LIBBITCOIN_MAIN
  * @param argv  The array of arguments, including the process.
  * @return      The numeric result to return via console exit.
  */
-int bc::main(int argc, char* argv[])
+int bc::system::main(int argc, char* argv[])
 {
     using namespace bc;
     using namespace bc::server;
+    using namespace bc::system;
 
     set_utf8_stdio();
-    server::parser metadata(bc::config::settings::mainnet);
+    bc::server::parser metadata(config::settings::mainnet);
     const auto& args = const_cast<const char**>(argv);
 
     if (!metadata.parse(argc, args, cerr))

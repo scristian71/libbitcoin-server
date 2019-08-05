@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -31,8 +31,9 @@ namespace libbitcoin {
 namespace server {
 
 using namespace std::placeholders;
-using namespace bc::chain;
 using namespace bc::protocol;
+using namespace bc::system;
+using namespace bc::system::chain;
 using role = zmq::socket::role;
 
 static const auto domain = "block";
@@ -47,7 +48,7 @@ block_service::block_service(zmq::authenticator& authenticator,
     settings_(node.server_settings()),
     external_(node.protocol_settings()),
     internal_(external_.send_high_water, external_.receive_high_water),
-    service_(settings_.block_endpoint(secure)),
+    service_(settings_.zeromq_block_endpoint(secure)),
     worker_(secure ? secure_worker : public_worker),
     authenticator_(authenticator),
     node_(node),
@@ -73,19 +74,19 @@ bool block_service::start()
 void block_service::work()
 {
     zmq::socket xpub(authenticator_, role::extended_publisher, external_);
-    zmq::socket xsub(authenticator_, role::extended_subscriber, internal_);
+    zmq::socket puller(authenticator_, role::puller, internal_);
 
     // Bind sockets to the service and worker endpoints.
-    if (!started(bind(xpub, xsub)))
+    if (!started(bind(xpub, puller)))
         return;
 
     // TODO: tap in to failure conditions, such as high water.
     // BUGBUG: stop is insufficient to stop the worker, because of relay().
     // Relay messages between subscriber and publisher (blocks on context).
-    relay(xpub, xsub);
+    relay(xpub, puller);
 
     // Unbind the sockets and exit this thread.
-    finished(unbind(xpub, xsub));
+    finished(unbind(xpub, puller));
 }
 
 // Bind/Unbind.
@@ -153,7 +154,7 @@ bool block_service::handle_reorganization(const code& ec, size_t fork_height,
         LOG_WARNING(LOG_SERVER)
             << "Failure handling new block: " << ec.message();
 
-        // Don't let a failure here prevent prevent future notifications.
+        // Don't let a failure here prevent future notifications.
         return true;
     }
 
@@ -176,11 +177,11 @@ void block_service::publish_blocks(uint32_t fork_height,
     if (stopped())
         return;
 
-    zmq::socket publisher(authenticator_, role::publisher, internal_);
+    zmq::socket pusher(authenticator_, role::pusher, internal_);
 
     // Subscriptions are off the pub-sub thread so this must connect back.
     // This could be optimized by caching the socket as thread static.
-    const auto ec = publisher.connect(worker_);
+    const auto ec = pusher.connect(worker_);
 
     if (ec == error::service_stopped)
         return;
@@ -194,14 +195,14 @@ void block_service::publish_blocks(uint32_t fork_height,
     }
 
     for (const auto block: *blocks)
-        publish_block(publisher, ++fork_height, block);
+        publish_block(pusher, ++fork_height, block);
 }
 
 // [ height:4 ]
 // [ block ]
 // The payload for block publication is delimited within the zeromq message.
 // This is required for compatability and inconsistent with query payloads.
-void block_service::publish_block(zmq::socket& publisher, size_t height,
+void block_service::publish_block(zmq::socket& pusher, size_t height,
     block_const_ptr block)
 {
     if (stopped())
@@ -213,9 +214,10 @@ void block_service::publish_block(zmq::socket& publisher, size_t height,
     zmq::message broadcast;
     broadcast.enqueue_little_endian(++sequence_);
     broadcast.enqueue_little_endian(static_cast<uint32_t>(height));
-    broadcast.enqueue(block->to_data(bc::message::version::level::canonical));
+    broadcast.enqueue(block->to_data(
+        system::message::version::level::canonical));
 
-    const auto ec = publisher.send(broadcast);
+    const auto ec = pusher.send(broadcast);
 
     if (ec == error::service_stopped)
         return;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -39,7 +39,7 @@ public:
     typedef std::shared_ptr<query_service> ptr;
 
     /// A reference to each inprocess worker endpoint.
-    static const config::endpoint& worker_endpoint(bool secure);
+    static const system::config::endpoint& worker_endpoint(bool secure);
 
     /// Construct a query service.
     query_service(bc::protocol::zmq::authenticator& authenticator,
@@ -61,8 +61,8 @@ private:
     const bc::server::settings& settings_;
     const bc::protocol::settings& external_;
     const bc::protocol::settings internal_;
-    const config::endpoint& service_;
-    const config::endpoint& worker_;
+    const system::config::endpoint& service_;
+    const system::config::endpoint& worker_;
     bc::protocol::zmq::authenticator& authenticator_;
 };
 

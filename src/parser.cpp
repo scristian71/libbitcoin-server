@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -22,7 +22,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node.hpp>
 #include <bitcoin/server/define.hpp>
 #include <bitcoin/server/parser.hpp>
@@ -37,8 +37,9 @@ namespace server {
 
 using namespace boost::filesystem;
 using namespace boost::program_options;
-using namespace bc::config;
 using namespace bc::network;
+using namespace bc::system;
+using namespace bc::system::config;
 
 // Initialize configuration by copying the given instance.
 parser::parser(const configuration& defaults)
@@ -47,7 +48,7 @@ parser::parser(const configuration& defaults)
 }
 
 // Initialize configuration using defaults of the given context.
-parser::parser(bc::config::settings context)
+parser::parser(config::settings context)
   : configured(context)
 {
     using serve = message::version::service;
@@ -410,6 +411,11 @@ options_metadata parser::load_settings()
         "Flush each write to disk, defaults to false."
     )
     (
+        "database.cache_capacity",
+        value<uint32_t>(&configured.database.cache_capacity),
+        "The maximum number of entries in the unspent outputs cache, defaults to 10000."
+    )
+    (
         "database.file_growth_rate",
         value<uint16_t>(&configured.database.file_growth_rate),
         "Full database files increase by this percentage, defaults to 5."
@@ -430,9 +436,39 @@ options_metadata parser::load_settings()
         "Address hash table size, defaults to 107000000."
     )
     (
-        "database.cache_capacity",
-        value<uint32_t>(&configured.database.cache_capacity),
-        "The maximum number of entries in the unspent outputs cache, defaults to 10000."
+        "database.block_table_size",
+        value<uint64_t>(&configured.database.block_table_size),
+        "Block table minimum file size, defaults to 80000000."
+    )
+    (
+        "database.candidate_index_size",
+        value<uint64_t>(&configured.database.candidate_index_size),
+        "Candidate index minimum file size, defaults to 3000000."
+    )
+    (
+        "database.confirmed_index_size",
+        value<uint64_t>(&configured.database.confirmed_index_size),
+        "Confirmed index minimum file size, defaults to 3000000."
+    )
+    (
+        "database.transaction_index_size",
+        value<uint64_t>(&configured.database.transaction_index_size),
+        "Transaction index minimum file size, defaults to 3000000000."
+    )
+    (
+        "database.transaction_table_size",
+        value<uint64_t>(&configured.database.transaction_table_size),
+        "Transaction table minimum file size, defaults to 220000000000."
+    )
+    (
+        "database.address_index_size",
+        value<uint64_t>(&configured.database.address_index_size),
+        "Address index minimum file size, defaults to 100000000000."
+    )
+    (
+        "database.address_table_size",
+        value<uint64_t>(&configured.database.address_table_size),
+        "Address table minimum file size, defaults to 100000000."
     )
 
     /* [blockchain] */
@@ -455,6 +491,11 @@ options_metadata parser::load_settings()
         "blockchain.reorganization_limit",
         value<uint32_t>(&configured.chain.reorganization_limit),
         "The maximum reorganization depth, defaults to 0 (unlimited)."
+    )
+    (
+        "blockchain.block_buffer_limit",
+        value<uint32_t>(&configured.chain.block_buffer_limit),
+        "The maximum number of blocks to buffer, defaults to 0 (none)."
     )
     (
         "blockchain.checkpoint",
@@ -598,25 +639,25 @@ options_metadata parser::load_settings()
 
     /* [server] */
     (
-        /* Internally this is database, but it applies to server and not node. */
-        "server.index_addresses",
-        value<bool>(&configured.database.index_addresses),
-        "Enable payment and stealth address indexing, defaults to true."
+        /* Internally this is chain, but it applies to server and not node. */
+        "server.index_payments",
+        value<bool>(&configured.chain.index_payments),
+        "Enable payment indexing, defaults to true."
     )
-    /* Internally this is protocol, but application to server is more intuitive. */
     (
+        /* Internally this is protocol, but application to server is more intuitive. */
         "server.send_high_water",
         value<uint32_t>(&configured.protocol.send_high_water),
         "Drop messages at this outgoing backlog level, defaults to 100."
     )
-    /* Internally this is protocol, but application to server is more intuitive. */
     (
+        /* Internally this is protocol, but application to server is more intuitive. */
         "server.receive_high_water",
         value<uint32_t>(&configured.protocol.receive_high_water),
         "Drop messages at this incoming backlog level, defaults to 100."
     )
-    /* Internally this is protocol, but application to server is more intuitive. */
     (
+        /* Internally this is protocol, but application to server is more intuitive. */
         "server.handshake_seconds",
         value<uint32_t>(&configured.protocol.handshake_seconds),
         "The time limit to complete the connection handshake, defaults to 30."
@@ -657,56 +698,6 @@ options_metadata parser::load_settings()
         "Enable the transaction publishing service, defaults to false."
     )
     (
-        "server.secure_query_endpoint",
-        value<endpoint>(&configured.server.secure_query_endpoint),
-        "The secure query endpoint, defaults to 'tcp://*:9081'."
-    )
-    (
-        "server.secure_heartbeat_endpoint",
-        value<endpoint>(&configured.server.secure_heartbeat_endpoint),
-        "The secure heartbeat endpoint, defaults to 'tcp://*:9082'."
-    )
-    (
-        "server.secure_block_endpoint",
-        value<endpoint>(&configured.server.secure_block_endpoint),
-        "The secure block publishing endpoint, defaults to 'tcp://*:9083'."
-    )
-    (
-        "server.secure_transaction_endpoint",
-        value<endpoint>(&configured.server.secure_transaction_endpoint),
-        "The secure transaction publishing endpoint, defaults to 'tcp://*:9084'."
-    )
-    (
-        "server.public_query_endpoint",
-        value<endpoint>(&configured.server.public_query_endpoint),
-        "The public query endpoint, defaults to 'tcp://*:9091'."
-    )
-    (
-        "server.public_heartbeat_endpoint",
-        value<endpoint>(&configured.server.public_heartbeat_endpoint),
-        "The public heartbeat endpoint, defaults to 'tcp://*:9092'."
-    )
-    (
-        "server.public_block_endpoint",
-        value<endpoint>(&configured.server.public_block_endpoint),
-        "The public block publishing endpoint, defaults to 'tcp://*:9093'."
-    )
-    (
-        "server.public_transaction_endpoint",
-        value<endpoint>(&configured.server.public_transaction_endpoint),
-        "The public transaction publishing endpoint, defaults to 'tcp://*:9094'."
-    )
-    (
-        "server.server_private_key",
-        value<config::sodium>(&configured.server.server_private_key),
-        "The Z85-encoded private key of the server, enables secure endpoints."
-    )
-    (
-        "server.client_public_key",
-        value<config::sodium::list>(&configured.server.client_public_keys),
-        "Allowed Z85-encoded public key of the client, multiple entries allowed."
-    )
-    (
         "server.client_address",
         value<config::authority::list>(&configured.server.client_addresses),
         "Allowed client IP address, multiple entries allowed."
@@ -715,6 +706,135 @@ options_metadata parser::load_settings()
         "server.blacklist",
         value<config::authority::list>(&configured.server.blacklists),
         "Blocked client IP address, multiple entries allowed."
+    )
+
+    /* [websockets] */
+    (
+        "websockets.secure_query_endpoint",
+        value<endpoint>(&configured.server.websockets_secure_query_endpoint),
+        "The secure query websocket endpoint, defaults to 'tcp://*:9061'."
+    )
+    (
+        "websockets.secure_heartbeat_endpoint",
+        value<endpoint>(&configured.server.websockets_secure_heartbeat_endpoint),
+        "The secure heartbeat websocket endpoint, defaults to 'tcp://*:9062'."
+    )
+    (
+        "websockets.secure_block_endpoint",
+        value<endpoint>(&configured.server.websockets_secure_block_endpoint),
+        "The secure block publishing websocket endpoint, defaults to 'tcp://*:9063'."
+    )
+    (
+        "websockets.secure_transaction_endpoint",
+        value<endpoint>(&configured.server.websockets_secure_transaction_endpoint),
+        "The secure transaction publishing websocket endpoint, defaults to 'tcp://*:9064'."
+    )
+    (
+        "websockets.public_query_endpoint",
+        value<endpoint>(&configured.server.websockets_public_query_endpoint),
+        "The public query websocket endpoint, defaults to 'tcp://*:9071'."
+    )
+    (
+        "websockets.public_heartbeat_endpoint",
+        value<endpoint>(&configured.server.websockets_public_heartbeat_endpoint),
+        "The public heartbeat websocket endpoint, defaults to 'tcp://*:9072'."
+    )
+    (
+        "websockets.public_block_endpoint",
+        value<endpoint>(&configured.server.websockets_public_block_endpoint),
+        "The public block publishing websocket endpoint, defaults to 'tcp://*:9073'."
+    )
+    (
+        "websockets.public_transaction_endpoint",
+        value<endpoint>(&configured.server.websockets_public_transaction_endpoint),
+        "The public transaction websocket publishing endpoint, defaults to 'tcp://*:9074'."
+    )
+    (
+        "websockets.enabled",
+        value<bool>(&configured.server.websockets_enabled),
+        "Enable websocket endpoints, defaults to true."
+    )
+    (
+        "websockets.root",
+        value<path>(&configured.protocol.web_root),
+        "The optional directory for serving files via HTTP/S, defaults to 'web'."
+    )
+    (
+        "websockets.ca_certificate",
+        value<path>(&configured.protocol.web_ca_certificate),
+        "The SSL certificate authority file, defaults to '', enables secure endpoints."
+    )
+    (
+        "websockets.server_private_key",
+        value<path>(&configured.protocol.web_server_private_key),
+        "The SSL private key file, defaults to 'key.pem', enables secure endpoints."
+    )
+    (
+        "websockets.server_certificate",
+        value<path>(&configured.protocol.web_server_certificate),
+        "The SSL certificate file, defaults to 'server.pem', enables secure endpoints."
+    )
+    (
+        "websockets.client_certificates",
+        value<path>(&configured.protocol.web_client_certificates),
+        "The SSL client certificates directory, defaults to 'clients'."
+    )
+    (
+        "websockets.origin",
+        value<config::endpoint::list>(&configured.protocol.web_origins),
+        "Allowed websocket origin, multiple entries allowed."
+    )
+
+    /* [zeromq] */
+    (
+        "zeromq.secure_query_endpoint",
+        value<endpoint>(&configured.server.zeromq_secure_query_endpoint),
+        "The secure query zeromq endpoint, defaults to 'tcp://*:9081'."
+    )
+    (
+        "zeromq.secure_heartbeat_endpoint",
+        value<endpoint>(&configured.server.zeromq_secure_heartbeat_endpoint),
+        "The secure heartbeat zeromq endpoint, defaults to 'tcp://*:9082'."
+    )
+    (
+        "zeromq.secure_block_endpoint",
+        value<endpoint>(&configured.server.zeromq_secure_block_endpoint),
+        "The secure block publishing zeromq endpoint, defaults to 'tcp://*:9083'."
+    )
+    (
+        "zeromq.secure_transaction_endpoint",
+        value<endpoint>(&configured.server.zeromq_secure_transaction_endpoint),
+        "The secure transaction publishing zeromq endpoint, defaults to 'tcp://*:9084'."
+    )
+    (
+        "zeromq.public_query_endpoint",
+        value<endpoint>(&configured.server.zeromq_public_query_endpoint),
+        "The public query zeromq endpoint, defaults to 'tcp://*:9091'."
+    )
+    (
+        "zeromq.public_heartbeat_endpoint",
+        value<endpoint>(&configured.server.zeromq_public_heartbeat_endpoint),
+        "The public heartbeat zeromq endpoint, defaults to 'tcp://*:9092'."
+    )
+    (
+        "zeromq.public_block_endpoint",
+        value<endpoint>(&configured.server.zeromq_public_block_endpoint),
+        "The public block publishing zeromq endpoint, defaults to 'tcp://*:9093'."
+    )
+    (
+        "zeromq.public_transaction_endpoint",
+        value<endpoint>(&configured.server.zeromq_public_transaction_endpoint),
+        "The public transaction publishing zeromq endpoint, defaults to 'tcp://*:9094'."
+    )
+    (
+        "zeromq.server_private_key",
+        value<config::sodium>(&configured.server.zeromq_server_private_key),
+        "The Z85-encoded private key of the server, enables secure endpoints."
+    )
+    (
+        "zeromq.client_public_key",
+        value<config::sodium::list>(&configured.server.zeromq_client_public_keys),
+        "Allowed Z85-encoded public key of the client, multiple entries allowed."
     );
 
     return description;

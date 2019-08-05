@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -22,7 +22,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <boost/filesystem.hpp>
 #include <bitcoin/node.hpp>
 #include <bitcoin/protocol.hpp>
 #include <bitcoin/server/define.hpp>
@@ -30,46 +29,64 @@
 namespace libbitcoin {
 namespace server {
 
-/// Common database configuration settings, properties not thread safe.
+/// Common server configuration settings, properties not thread safe.
 class BCS_API settings
 {
 public:
     settings();
-    settings(bc::config::settings context);
+    settings(system::config::settings context);
 
     /// Helpers.
-    asio::duration heartbeat_interval() const;
-    asio::duration subscription_expiration() const;
-    const config::endpoint& query_endpoint(bool secure) const;
-    const config::endpoint& heartbeat_endpoint(bool secure) const;
-    const config::endpoint& block_endpoint(bool secure) const;
-    const config::endpoint& transaction_endpoint(bool secure) const;
+    system::asio::duration heartbeat_interval() const;
+    system::asio::duration subscription_expiration() const;
+    const system::config::endpoint& zeromq_query_endpoint(bool secure) const;
+    const system::config::endpoint& zeromq_heartbeat_endpoint(bool secure) const;
+    const system::config::endpoint& zeromq_block_endpoint(bool secure) const;
+    const system::config::endpoint& zeromq_transaction_endpoint(bool secure) const;
 
-    /// Properties.
+    const system::config::endpoint& websockets_query_endpoint(bool secure) const;
+    const system::config::endpoint& websockets_heartbeat_endpoint(bool secure) const;
+    const system::config::endpoint& websockets_block_endpoint(bool secure) const;
+    const system::config::endpoint& websockets_transaction_endpoint(bool secure) const;
+
+    /// [server]
     bool priority;
     bool secure_only;
-
     uint16_t query_workers;
     uint32_t subscription_limit;
     uint32_t subscription_expiration_minutes;
     uint32_t heartbeat_service_seconds;
     bool block_service_enabled;
     bool transaction_service_enabled;
+    system::config::authority::list client_addresses;
+    system::config::authority::list blacklists;
 
-    config::endpoint secure_query_endpoint;
-    config::endpoint secure_heartbeat_endpoint;
-    config::endpoint secure_block_endpoint;
-    config::endpoint secure_transaction_endpoint;
+    /// [websockets]
+    system::config::endpoint websockets_secure_query_endpoint;
+    system::config::endpoint websockets_secure_heartbeat_endpoint;
+    system::config::endpoint websockets_secure_block_endpoint;
+    system::config::endpoint websockets_secure_transaction_endpoint;
 
-    config::endpoint public_query_endpoint;
-    config::endpoint public_heartbeat_endpoint;
-    config::endpoint public_block_endpoint;
-    config::endpoint public_transaction_endpoint;
+    system::config::endpoint websockets_public_query_endpoint;
+    system::config::endpoint websockets_public_heartbeat_endpoint;
+    system::config::endpoint websockets_public_block_endpoint;
+    system::config::endpoint websockets_public_transaction_endpoint;
 
-    config::sodium server_private_key;
-    config::sodium::list client_public_keys;
-    config::authority::list client_addresses;
-    config::authority::list blacklists;
+    bool websockets_enabled;
+
+    /// [zeromq]
+    system::config::endpoint zeromq_secure_query_endpoint;
+    system::config::endpoint zeromq_secure_heartbeat_endpoint;
+    system::config::endpoint zeromq_secure_block_endpoint;
+    system::config::endpoint zeromq_secure_transaction_endpoint;
+
+    system::config::endpoint zeromq_public_query_endpoint;
+    system::config::endpoint zeromq_public_heartbeat_endpoint;
+    system::config::endpoint zeromq_public_block_endpoint;
+    system::config::endpoint zeromq_public_transaction_endpoint;
+
+    system::config::sodium zeromq_server_private_key;
+    system::config::sodium::list zeromq_client_public_keys;
 };
 
 } // namespace server

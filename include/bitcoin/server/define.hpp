@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -19,7 +19,7 @@
 #ifndef LIBBITCOIN_SERVER_DEFINE_HPP
 #define LIBBITCOIN_SERVER_DEFINE_HPP
 
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 
 // We use the generic helper definitions in libbitcoin to define BCS_API
 // and BCS_INTERNAL. BCS_API is used for the public API symbols. It either DLL
@@ -39,11 +39,12 @@
 
 // Log name.
 #define LOG_SERVER "server"
+#define LOG_SERVER_HTTP "http"
 
 // Avoid namespace conflict between boost::placeholders and std::placeholders.
 #define BOOST_BIND_NO_PLACEHOLDERS
 
-// Include boost only here, so placeholders exclusion works.
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/program_options.hpp>

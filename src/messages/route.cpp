@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -24,7 +24,8 @@
 namespace libbitcoin {
 namespace server {
 
-using namespace bc:: protocol;
+using namespace bc::protocol;
+using namespace bc::system;
 
 static const zmq::message::address default_address
 {

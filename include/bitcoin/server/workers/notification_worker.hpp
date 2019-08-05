@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -25,14 +25,14 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/server/define.hpp>
 #include <bitcoin/server/messages/message.hpp>
 #include <bitcoin/server/messages/route.hpp>
 #include <bitcoin/server/messages/subscription.hpp>
 #include <bitcoin/server/settings.hpp>
 
-// Include after bitcoin.hpp (placeholders).
+// Include after define.hpp (placeholders).
 #include <boost/bimap.hpp>
 #include <boost/bimap/multiset_of.hpp>
 
@@ -56,13 +56,13 @@ public:
     /// Start the worker.
     bool start() override;
 
-    /// Subscribe to address notifications.
-    virtual code subscribe_address(const message& request,
-        short_hash&& address_hash, bool unsubscribe);
+    /// Subscribe to payment key notifications.
+    virtual system::code subscribe_key(const message& request,
+        system::hash_digest&& key, bool unsubscribe);
 
     /// Subscribe to stealth notifications.
-    virtual code subscribe_stealth(const message& request,
-        binary&& prefix_filter, bool unsubscribe);
+    virtual system::code subscribe_stealth(const message& request,
+        system::binary&& prefix_filter, bool unsubscribe);
 
 protected:
 
@@ -72,7 +72,7 @@ protected:
 private:
     typedef bc::protocol::zmq::socket socket;
     typedef std::unordered_set<uint32_t> stealth_set;
-    typedef std::unordered_set<short_hash> address_set;
+    typedef std::unordered_set<system::hash_digest> key_set;
 
     // Purge:     route.created (constant: 1).
     // Notify:    address (constant: 1).
@@ -82,8 +82,8 @@ private:
     // This produces the effect of a circular hash table of subscriptions.
     // Since address hashes are fixed length, 1 query returns all matches.
     typedef boost::bimaps::bimap<
-        boost::bimaps::multiset_of<short_hash>,
-        boost::bimaps::multiset_of<subscription>> address_subscriptions;
+        boost::bimaps::multiset_of<system::hash_digest>,
+        boost::bimaps::multiset_of<subscription>> key_subscriptions;
 
     // Purge:     route.created (constant: 1).
     // Notify:    prefix (constant: 24 [32-8]).
@@ -94,7 +94,7 @@ private:
     // Since prefix matching varies by length, but is constrained to 8-32 bits,
     // we simply query 24 times against the hash table to find all matches.
     typedef boost::bimaps::bimap<
-        boost::bimaps::multiset_of<binary>,
+        boost::bimaps::multiset_of<system::binary>,
         boost::bimaps::multiset_of<subscription >> stealth_subscriptions;
 
     static time_t current_time();
@@ -102,25 +102,27 @@ private:
     int32_t purge_milliseconds() const;
     void purge();
 
-    bool address_subscriptions_empty() const;
+    bool key_subscriptions_empty() const;
     bool stealth_subscriptions_empty() const;
 
-    bool handle_reorganization(const code& ec, size_t fork_height,
-        block_const_ptr_list_const_ptr incoming,
-        block_const_ptr_list_const_ptr outgoing);
-    bool handle_transaction_pool(const code& ec, transaction_const_ptr tx);
+    bool handle_reorganization(const system::code& ec, size_t fork_height,
+        system::block_const_ptr_list_const_ptr incoming,
+        system::block_const_ptr_list_const_ptr outgoing);
+    bool handle_transaction_pool(const system::code& ec,
+        system::transaction_const_ptr tx);
 
-    void notify_block(socket& dealer, size_t height, block_const_ptr block);
+    void notify_block(socket& dealer, size_t height,
+        system::block_const_ptr block);
     void notify_transaction(socket& dealer, size_t height,
-        const chain::transaction& tx);
-    void notify(socket& dealer, const address_set& addresses,
+        const system::chain::transaction& tx);
+    void notify(socket& dealer, const key_set& keys,
         const stealth_set& prefixes, size_t height,
-        const hash_digest& tx_hash);
+        const system::hash_digest& tx_hash);
 
     socket::ptr connect();
     bool send(socket& dealer, const subscription& routing,
-        const std::string& command, const code& status, size_t height,
-        const hash_digest& tx_hash);
+        const std::string& command, const system::code& status, size_t height,
+        const system::hash_digest& tx_hash);
 
     // These are thread safe.
     const bool secure_;
@@ -128,15 +130,15 @@ private:
     const bc::server::settings& settings_;
     const bc::protocol::settings& external_;
     const bc::protocol::settings internal_;
-    const config::endpoint& worker_;
+    const system::config::endpoint& worker_;
     bc::protocol::zmq::authenticator& authenticator_;
     server_node& node_;
 
     // These are protected by mutex.
-    address_subscriptions address_subscriptions_;
+    key_subscriptions key_subscriptions_;
     stealth_subscriptions stealth_subscriptions_;
-    mutable upgrade_mutex address_mutex_;
-    mutable upgrade_mutex stealth_mutex_;
+    mutable system::upgrade_mutex key_mutex_;
+    mutable system::upgrade_mutex stealth_mutex_;
 };
 
 } // namespace server

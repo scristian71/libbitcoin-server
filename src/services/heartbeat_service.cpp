@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -29,8 +29,9 @@ namespace server {
 
 static const auto domain = "heartbeat";
 
-using namespace bc::config;
 using namespace bc::protocol;
+using namespace bc::system;
+using namespace bc::system::config;
 using role = zmq::socket::role;
 
 // Heartbeat is capped at ~ 25 days by signed/millsecond conversions.
@@ -41,7 +42,7 @@ heartbeat_service::heartbeat_service(zmq::authenticator& authenticator,
     security_(secure ? "secure" : "public"),
     settings_(node.server_settings()),
     external_(node.protocol_settings()),
-    service_(settings_.heartbeat_endpoint(secure)),
+    service_(settings_.zeromq_heartbeat_endpoint(secure)),
     authenticator_(authenticator),
     node_(node),
 

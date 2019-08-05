@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -31,8 +31,8 @@ namespace server {
 class BCS_API unsubscribe
 {
 public:
-    /// Unsubscribe to payment address notifications by address hash.
-    static void address(server_node& node, const message& request,
+    /// Unsubscribe to payment address notifications by key.
+    static void key(server_node& node, const message& request,
         send_handler handler);
 
     /// Unsubscribe to stealth address notifications by prefix.

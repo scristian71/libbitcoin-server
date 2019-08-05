@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -29,9 +29,10 @@ namespace libbitcoin {
 namespace server {
 
 using namespace std::placeholders;
-using namespace bc::chain;
-using namespace bc::message;
 using namespace bc::protocol;
+using namespace bc::system;
+using namespace bc::system::chain;
+using namespace bc::system::message;
 using role = zmq::socket::role;
 
 static const auto domain = "transaction";
@@ -46,7 +47,7 @@ transaction_service::transaction_service(zmq::authenticator& authenticator,
     settings_(node.server_settings()),
     external_(node.protocol_settings()),
     internal_(external_.send_high_water, external_.receive_high_water),
-    service_(settings_.transaction_endpoint(secure)),
+    service_(settings_.zeromq_transaction_endpoint(secure)),
     worker_(secure ? secure_worker : public_worker),
     authenticator_(authenticator),
     node_(node),
@@ -72,19 +73,19 @@ bool transaction_service::start()
 void transaction_service::work()
 {
     zmq::socket xpub(authenticator_, role::extended_publisher, external_);
-    zmq::socket xsub(authenticator_, role::extended_subscriber, internal_);
+    zmq::socket puller(authenticator_, role::puller, internal_);
 
     // Bind sockets to the service and worker endpoints.
-    if (!started(bind(xpub, xsub)))
+    if (!started(bind(xpub, puller)))
         return;
 
     // TODO: tap in to failure conditions, such as high water.
     // BUGBUG: stop is insufficient to stop the worker, because of relay().
     // Relay messages between subscriber and publisher (blocks on context).
-    relay(xpub, xsub);
+    relay(xpub, puller);
 
     // Unbind the sockets and exit this thread.
-    finished(unbind(xpub, xsub));
+    finished(unbind(xpub, puller));
 }
 
 // Bind/Unbind.
@@ -152,7 +153,7 @@ bool transaction_service::handle_transaction(const code& ec,
         LOG_WARNING(LOG_SERVER)
             << "Failure handling new transaction: " << ec.message();
 
-        // Don't let a failure here prevent prevent future notifications.
+        // Don't let a failure here prevent future notifications.
         return true;
     }
 
@@ -174,11 +175,11 @@ void transaction_service::publish_transaction(transaction_const_ptr tx)
     if (stopped())
         return;
 
-    zmq::socket publisher(authenticator_, role::publisher, internal_);
+    zmq::socket pusher(authenticator_, role::pusher, internal_);
 
     // Subscriptions are off the pub-sub thread so this must connect back.
     // This could be optimized by caching the socket as thread static.
-    auto ec = publisher.connect(worker_);
+    auto ec = pusher.connect(worker_);
 
     if (ec == error::service_stopped)
         return;
@@ -198,9 +199,9 @@ void transaction_service::publish_transaction(transaction_const_ptr tx)
     // [ tx:... ]
     zmq::message broadcast;
     broadcast.enqueue_little_endian(++sequence_);
-    broadcast.enqueue(tx->to_data(bc::message::version::level::canonical));
+    broadcast.enqueue(tx->to_data(system::message::version::level::canonical));
 
-    ec = publisher.send(broadcast);
+    ec = pusher.send(broadcast);
 
     if (ec == error::service_stopped)
         return;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -23,8 +23,10 @@
 namespace libbitcoin {
 namespace server {
 
+using namespace bc::system;
+
 // Construct with defaults derived from given context.
-configuration::configuration(bc::config::settings context)
+configuration::configuration(config::settings context)
   : node::configuration(context),
     server(context),
     blockchain(context)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -33,21 +33,22 @@ namespace server {
 
 using namespace std::placeholders;
 using namespace bc::blockchain;
-using namespace bc::chain;
-using namespace bc::wallet;
-using namespace bc::machine;
+using namespace bc::system;
+using namespace bc::system::chain;
+using namespace bc::system::machine;
+using namespace bc::system::wallet;
 
 static constexpr size_t code_size = sizeof(uint32_t);
 static constexpr size_t index_size = sizeof(uint32_t);
 static constexpr size_t point_size = hash_size + sizeof(uint32_t);
-static constexpr auto canonical = bc::message::version::level::canonical;
+static constexpr auto canonical = system::message::version::level::canonical;
 
+// TODO: create interface doc for unordered list, unconfirmeds and key change.
 void blockchain::fetch_history4(server_node& node, const message& request,
     send_handler handler)
 {
-    static constexpr size_t limit = 0;
-    static constexpr size_t history_args_size = short_hash_size +
-        sizeof(uint32_t);
+    static constexpr size_t default_limit = 0;
+    static constexpr size_t history_args_size = hash_size + sizeof(uint32_t);
 
     const auto& data = request.data();
 
@@ -58,10 +59,10 @@ void blockchain::fetch_history4(server_node& node, const message& request,
     }
 
     auto deserial = make_safe_deserializer(data.begin(), data.end());
-    const auto address_hash = deserial.read_short_hash();
+    const auto key = deserial.read_reverse<hash_digest>();
     const size_t from_height = deserial.read_4_bytes_little_endian();
 
-    node.chain().fetch_history(address_hash, limit, from_height,
+    node.chain().fetch_history(key, default_limit, from_height,
         std::bind(&blockchain::history_fetched,
             _1, _2, request, handler));
 }
@@ -75,6 +76,7 @@ void blockchain::history_fetched(const code& ec,
     auto serial = make_unsafe_serializer(result.begin());
     serial.write_error_code(ec);
 
+    // Unconfirmed transactions have height sentinal of max_uint32.
     for (const auto& record: payments)
         record.to_data(serial, true);
 
@@ -97,7 +99,10 @@ void blockchain::fetch_transaction(server_node& node, const message& request,
 
     // The response is restricted to confirmed transactions.
     // This response excludes witness data so as not to break old parsers.
-    node.chain().fetch_transaction(hash, true, false,
+    const auto require_confirmed = true;
+    const auto witness = false;
+
+    node.chain().fetch_transaction(hash, require_confirmed, witness,
         std::bind(&blockchain::transaction_fetched,
             _1, _2, _3, _4, request, handler));
 }
@@ -119,10 +124,11 @@ void blockchain::fetch_transaction2(server_node& node, const message& request,
     // The response is restricted to confirmed transactions.
     // This response can include witness data (based on configuration)
     // so may break old parsers.
+    const auto require_confirmed = true;
     const auto witness = script::is_enabled(
         node.blockchain_settings().enabled_forks(), rule_fork::bip141_rule);
 
-    node.chain().fetch_transaction(hash, true, witness,
+    node.chain().fetch_transaction(hash, require_confirmed, witness,
         std::bind(&blockchain::transaction_fetched,
             _1, _2, _3, _4, request, handler));
 }
@@ -375,7 +381,9 @@ void blockchain::fetch_transaction_index(server_node& node,
     const auto hash = deserial.read_hash();
 
     // The response is restricted to confirmed transactions (backward compat).
-    node.chain().fetch_transaction_position(hash, true,
+    const auto require_confirmed = true;
+
+    node.chain().fetch_transaction_position(hash, require_confirmed,
         std::bind(&blockchain::transaction_index_fetched,
             _1, _2, _3, request, handler));
 }
@@ -415,7 +423,9 @@ void blockchain::fetch_spend(server_node& node, const message& request,
     }
 
     output_point outpoint;
-    outpoint.from_data(data);
+
+    // Failure to parse will result in a not found output.
+    /* bool */ outpoint.from_data(data);
 
     node.chain().fetch_spend(outpoint,
         std::bind(&blockchain::spend_fetched,
@@ -587,10 +597,10 @@ void blockchain::stealth_transaction_hashes_fetched(const code& ec,
 }
 
 // Save to blockchain and announce to all connected peers.
-void blockchain::broadcast(server_node& node, const message& request,
+void blockchain::broadcast(server_node& /* node */, const message& request,
     send_handler handler)
 {
-    const auto block = std::make_shared<bc::message::block>();
+    const auto block = std::make_shared<system::message::block>();
 
     if (!block->from_data(canonical, request.data()))
     {
@@ -617,10 +627,10 @@ void blockchain::handle_broadcast(const code& ec, const message& request,
     handler(message(request, ec));
 }
 
-void blockchain::validate(server_node& node, const message& request,
+void blockchain::validate(server_node& /* node */, const message& request,
     send_handler handler)
 {
-    const auto block = std::make_shared<bc::message::block>();
+    const auto block = std::make_shared<system::message::block>();
 
     if (!block->from_data(canonical, request.data()))
     {

@@ -1,5 +1,5 @@
 ###############################################################################
-#  Copyright (c) 2014-2019 libbitcoin-server developers (see COPYING).
+#  Copyright (c) 2014-2020 libbitcoin-server developers (see COPYING).
 #
 #         GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY
 #
@@ -97,7 +97,7 @@ endif()
 
 # Find boost
 #------------------------------------------------------------------------------
-find_package( Boost 1.62.0 REQUIRED COMPONENTS
+find_package( Boost 1.72.0 REQUIRED COMPONENTS
     unit_test_framework )
 
 set( boost_unit_test_framework_LIBS "-lboost_unit_test_framework" )
@@ -140,11 +140,11 @@ endif()
 # Define project common library directories
 #------------------------------------------------------------------------------
 if (BUILD_SHARED_LIBS)
-    link_directories( 
+    link_directories(
         ${bitcoin_protocol_LIBRARY_DIRS}
         ${bitcoin_node_LIBRARY_DIRS} )
 else()
-    link_directories( 
+    link_directories(
         ${bitcoin_protocol_STATIC_LIBRARY_DIRS}
         ${bitcoin_node_STATIC_LIBRARY_DIRS} )
 endif()
@@ -152,20 +152,20 @@ endif()
 # Define project common libraries/linker flags.
 #------------------------------------------------------------------------------
 if (BUILD_SHARED_LIBS)
-    link_libraries( 
+    link_libraries(
         "-fstack-protector"
         "-fstack-protector-all"
         ${bitcoin_protocol_LIBRARIES}
         ${bitcoin_node_LIBRARIES} )
 else()
-    link_libraries( 
+    link_libraries(
         "-fstack-protector"
         "-fstack-protector-all"
         ${bitcoin_protocol_STATIC_LIBRARIES}
         ${bitcoin_node_STATIC_LIBRARIES} )
 endif()
 
-add_definitions( 
+add_definitions(
     -DSYSCONFDIR=\"${sysconfdir}\" )
 
 # Define ${CANONICAL_LIB_NAME} project.
@@ -188,6 +188,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/services/query_service.cpp"
     "../../src/services/transaction_service.cpp"
     "../../src/web/block_socket.cpp"
+    "../../src/web/default_page_data.cpp"
     "../../src/web/heartbeat_socket.cpp"
     "../../src/web/query_socket.cpp"
     "../../src/web/transaction_socket.cpp"
@@ -329,7 +330,9 @@ endif()
 
 # Manage data installation for sysconf prefixed product.
 #------------------------------------------------------------------------------
-install( FILES
-    "../../data/bs.cfg"
-    DESTINATION etc/libbitcoin )
+if (with-console)
+    install( FILES
+        "../../data/bs.cfg"
+        DESTINATION etc/libbitcoin )
+endif()
 

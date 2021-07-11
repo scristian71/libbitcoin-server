@@ -16,42 +16,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/server/interface/subscribe.hpp>
+#ifndef LIBBITCOIN_SERVER_WEB_DEFAULT_PAGE_DATA_HPP
+#define LIBBITCOIN_SERVER_WEB_DEFAULT_PAGE_DATA_HPP
 
-#include <cstddef>
-#include <cstdint>
-#include <functional>
-#include <utility>
-#include <bitcoin/system.hpp>
-#include <bitcoin/server/messages/message.hpp>
-#include <bitcoin/server/server_node.hpp>
+#include <bitcoin/server/define.hpp>
+#include <bitcoin/server/settings.hpp>
 
 namespace libbitcoin {
 namespace server {
 
-using namespace bc::system;
-using namespace bc::system::wallet;
-
-void subscribe::key(server_node& node, const message& request,
-    send_handler handler)
-{
-    static constexpr size_t args_size = hash_size;
-
-    const auto& data = request.data();
-
-    if (data.size() != args_size)
-    {
-        handler(message(request, error::bad_stream));
-        return;
-    }
-
-    // [ key:32 ]
-    auto deserial = make_safe_deserializer(data.begin(), data.end());
-    auto key = deserial.read_hash();
-
-    auto ec = node.subscribe_key(request, std::move(key), false);
-    handler(message(request, ec));
-}
+/// Given endpoints for each web service based on user configuration,
+/// we can generate default page data.
+std::string get_default_page_data(const bc::system::config::endpoint& query,
+    const bc::system::config::endpoint& heartbeat,
+    const bc::system::config::endpoint& block,
+    const bc::system::config::endpoint& transaction);
 
 } // namespace server
 } // namespace libbitcoin
+
+#endif

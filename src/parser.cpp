@@ -188,23 +188,23 @@ options_metadata parser::load_settings()
     /* [bitcoin] */
     (
         "bitcoin.retargeting_factor",
-        PROPERTY(uint32_t, configured.bitcoin.retargeting_factor),
+        value<uint32_t>(&configured.bitcoin.retargeting_factor),
         "The difficulty retargeting factor, defaults to 4."
     )
     (
+        "bitcoin.retargeting_interval_seconds",
+        value<uint32_t>(&configured.bitcoin.retargeting_interval_seconds),
+        "The difficulty retargeting period, defaults to 1209600."
+    )
+    (
         "bitcoin.block_spacing_seconds",
-        PROPERTY(uint32_t, configured.bitcoin.block_spacing_seconds),
-        "The target block period in seconds, defaults to 600."
+        value<uint32_t>(&configured.bitcoin.block_spacing_seconds),
+        "The target block period, defaults to 600."
     )
     (
         "bitcoin.timestamp_limit_seconds",
         value<uint32_t>(&configured.bitcoin.timestamp_limit_seconds),
-        "The future timestamp allowance in seconds, defaults to 7200."
-    )
-    (
-        "bitcoin.retargeting_interval_seconds",
-        PROPERTY(uint32_t, configured.bitcoin.retargeting_interval_seconds),
-        "The difficulty retargeting period in seconds, defaults to 1209600."
+        "The future timestamp allowance, defaults to 7200."
     )
     (
         "bitcoin.proof_of_work_limit",
@@ -213,13 +213,13 @@ options_metadata parser::load_settings()
     )
     (
         "bitcoin.initial_block_subsidy_bitcoin",
-        PROPERTY(uint64_t, configured.bitcoin.initial_block_subsidy_bitcoin),
-        "The initial block subsidy in bitcoin, defaults to 50."
+        value<uint64_t>(&configured.bitcoin.initial_subsidy_bitcoin),
+        "The initial block subsidy, defaults to 50."
     )
     (
         "bitcoin.subsidy_interval",
-        PROPERTY(uint64_t, configured.bitcoin.subsidy_interval),
-        "The subsidy halving period in number of blocks, defaults to 210000."
+        value<uint64_t>(&configured.bitcoin.subsidy_interval_blocks),
+        "The subsidy halving period, defaults to 210000."
     )
     (
         "bitcoin.genesis_block",
@@ -431,9 +431,9 @@ options_metadata parser::load_settings()
         "Transaction hash table size, defaults to 110000000."
     )
     (
-        "database.address_table_buckets",
-        value<uint32_t>(&configured.database.address_table_buckets),
-        "Address hash table size, defaults to 107000000."
+        "database.payment_table_buckets",
+        value<uint32_t>(&configured.database.payment_table_buckets),
+        "Payment hash table size, defaults to 107000000."
     )
     (
         "database.block_table_size",
@@ -461,14 +461,24 @@ options_metadata parser::load_settings()
         "Transaction table minimum file size, defaults to 220000000000."
     )
     (
-        "database.address_index_size",
-        value<uint64_t>(&configured.database.address_index_size),
-        "Address index minimum file size, defaults to 100000000000."
+        "database.payment_index_size",
+        value<uint64_t>(&configured.database.payment_index_size),
+        "Payment index minimum file size, defaults to 100000000000."
     )
     (
-        "database.address_table_size",
-        value<uint64_t>(&configured.database.address_table_size),
-        "Address table minimum file size, defaults to 100000000."
+        "database.payment_table_size",
+        value<uint64_t>(&configured.database.payment_table_size),
+        "Payment table minimum file size, defaults to 100000000."
+    )
+    (
+        "database.neutrino_filter_table_buckets",
+        value<uint32_t>(&configured.database.neutrino_filter_table_buckets),
+        "Neutrino filter hash table size, defaults to 650000."
+    )
+    (
+        "database.neutrino_filter_table_size",
+        value<uint64_t>(&configured.database.neutrino_filter_table_size),
+        "Neutrino filter table minimum file size, defaults to 80000000."
     )
 
     /* [blockchain] */
@@ -502,6 +512,11 @@ options_metadata parser::load_settings()
         value<config::checkpoint::list>(&configured.chain.checkpoints),
         "A hash:height checkpoint, multiple entries allowed."
     )
+    (
+        "blockchain.bip158",
+        value<bool>(&configured.chain.bip158),
+        "Neutrino filter (bip158 basic filter) support, defaults to false."
+    )
 
     /* [fork] */
     (
@@ -528,6 +543,11 @@ options_metadata parser::load_settings()
         "fork.bip34",
         value<bool>(&configured.chain.bip34),
         "Require coinbase input includes block height, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip42",
+        value<bool>(&configured.chain.bip42),
+        "Finite monetary supply, defaults to true (soft fork)."
     )
     (
         "fork.bip66",

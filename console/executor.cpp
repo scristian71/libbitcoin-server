@@ -48,7 +48,6 @@ static const auto application_name = "bs";
 static constexpr int initialize_stop = 0;
 static constexpr int directory_exists = 0;
 static constexpr int directory_not_found = 2;
-static const auto mode = std::ofstream::out | std::ofstream::app;
 
 std::promise<code> executor::stopping_;
 
@@ -128,13 +127,23 @@ bool executor::do_initchain()
     {
         LOG_INFO(LOG_SERVER) << format(BS_INITIALIZING_CHAIN) % directory;
 
-        const auto& bitcoin_settings = metadata_.configured.bitcoin;
-        const auto result = data_base(metadata_.configured.database,
-            metadata_.configured.chain.index_payments).create(
-                bitcoin_settings.genesis_block);
+        const auto& settings_chain = metadata_.configured.chain;
+        const auto& settings_database = metadata_.configured.database;
+        const auto& settings_system = metadata_.configured.bitcoin;
+
+        const auto code = bc::blockchain::block_chain_initializer(
+            settings_chain, settings_database, settings_system).create(
+                settings_system.genesis_block);
+
+        if (code)
+        {
+            LOG_ERROR(LOG_SERVER) <<
+                format(BS_INITCHAIN_DATABASE_CREATE_FAILURE) % code.message();
+            return false;
+        }
 
         LOG_INFO(LOG_SERVER) << BS_INITCHAIN_COMPLETE;
-        return result;
+        return true;
     }
 
     if (ec.value() == directory_exists)
